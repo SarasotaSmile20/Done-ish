@@ -32,23 +32,23 @@ fun DashboardScreen(navController: NavController) {
         )
 
         DashboardButton("Decision Breaker") {
-            // navController.navigate("decision")
+            navController.navigate("decision")
         }
 
         DashboardButton("Momentum Tracker") {
-            // navController.navigate("momentum")
+            navController.navigate("momentum")
         }
 
         DashboardButton("Smart Interrupt Notifications") {
-            // navController.navigate("interrupts")
+            navController.navigate("interrupts")
         }
 
         DashboardButton("Stubborn Mode") {
-            // navController.navigate("stubborn")
+            navController.navigate("stubborn")
         }
 
         DashboardButton("Micro-Commit Timer") {
-            // navController.navigate("micro-commitment")
+            navController.navigate("microcommit")
         }
     }
 }
@@ -74,4 +74,3 @@ fun DashboardScreenPreview() {
         DashboardScreen(navController = rememberNavController())
     }
 }
-
