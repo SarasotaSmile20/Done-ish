@@ -23,6 +23,9 @@ class MainActivity : ComponentActivity() {
                     composable("login") {
                         DoneishLoginScreen(navController)
                     }
+                    composable("dashboard") {
+                        DashboardScreen(navController)
+                    }
                 }
             }
         }
