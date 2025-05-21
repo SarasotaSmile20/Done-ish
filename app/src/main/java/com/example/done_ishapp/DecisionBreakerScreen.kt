@@ -23,7 +23,17 @@ fun DecisionBreakerScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Decision Breaker", fontSize = 26.sp)
+            Spacer(modifier = Modifier.height(16.dp))
             Text("This screen will help break analysis paralysis.", fontSize = 16.sp)
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { navController.navigate("dashboard") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back to Dashboard")
+            }
         }
     }
 }
