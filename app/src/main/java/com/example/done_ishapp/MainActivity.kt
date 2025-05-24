@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("interrupts") {
-                        SmartInterruptsScreen(navController)
+                        SmartInterruptScreen(navController)
                     }
 
                     composable("stubborn") {

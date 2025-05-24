@@ -1,12 +1,13 @@
 package com.example.done_ishapp
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,17 +21,22 @@ import com.example.done_ishapp.ui.theme.DoneishAppTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DecisionBreakerScreen(navController: NavController) {
+    val categories = listOf("Housework", "Study", "Self-Care", "Work")
+    var selectedCategory by remember { mutableStateOf(categories[0]) }
+    var suggestedAction by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Decision Breaker", fontSize = 22.sp) },
+                title = { Text("Break My Brain Loop", fontSize = 20.sp) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigate("dashboard") }) {
-                        Icon(Icons.Default.Home, contentDescription = "Home")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Add settings */ }) {
+                    IconButton(onClick = { /* TODO: Settings */ }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
@@ -42,56 +48,81 @@ fun DecisionBreakerScreen(navController: NavController) {
                 .padding(innerPadding)
                 .padding(24.dp)
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Random low-effort starter actions\nbased on task category.",
-                    fontSize = 16.sp,
-                    color = Color(0xFFB83B1D),
-                    lineHeight = 22.sp
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("What do you want to do?", fontSize = 16.sp)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                TextField(
+                    value = selectedCategory,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Task Category") },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    colors = ExposedDropdownMenuDefaults.textFieldColors()
                 )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Grid of Buttons with weight applied here
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CategoryButton("Housework", Color(0xFFF57C00), modifier = Modifier.weight(1f))
-                        CategoryButton("Study", Color(0xFF00796B), modifier = Modifier.weight(1f))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        CategoryButton("Self-Care", Color(0xFFE65100), modifier = Modifier.weight(1f))
-                        CategoryButton("Work", Color(0xFFFFCC80), modifier = Modifier.weight(1f))
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    categories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category) },
+                            onClick = {
+                                selectedCategory = category
+                                expanded = false
+                            }
+                        )
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             Button(
-                onClick = { /* Flip logic */ },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726)),
+                onClick = {
+                    suggestedAction = when (selectedCategory) {
+                        "Housework" -> "Touch one item"
+                        "Study" -> "Open one tab"
+                        "Self-Care" -> "Stretch for 30 seconds"
+                        "Work" -> "Write one sentence"
+                        else -> "Take a deep breath"
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(32.dp)
+                    .height(50.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726))
             ) {
-                Text("Flip a Coin", color = Color.DarkGray, fontSize = 18.sp)
+                Text("Get Starter Action", color = Color.White)
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            if (suggestedAction.isNotEmpty()) {
+                Text("Suggested action:", fontSize = 14.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, Color.DarkGray, RoundedCornerShape(8.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(suggestedAction, fontSize = 16.sp)
+                }
             }
         }
-    }
-}
-
-@Composable
-fun CategoryButton(label: String, backgroundColor: Color, modifier: Modifier = Modifier) {
-    Button(
-        onClick = { /* TODO: Add category action */ },
-        colors = ButtonDefaults.buttonColors(containerColor = backgroundColor),
-        modifier = modifier
-            .height(80.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Text(label, color = Color.White, fontSize = 16.sp)
     }
 }
 
