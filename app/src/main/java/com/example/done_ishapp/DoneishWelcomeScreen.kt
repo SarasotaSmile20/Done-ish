@@ -1,9 +1,9 @@
-
 package com.example.done_ishapp
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,15 +29,38 @@ import com.example.done_ishapp.R
 @Composable
 fun DoneishWelcomeScreen(navController: NavController) {
     val moods = listOf("Foggy Brain", "Overwhelmed", "Just Need a Nudge", "Sorta Ready")
+    val moodMessages = mapOf(
+        "Foggy Brain" to listOf(
+            "Let’s try just 2 minutes. That’s enough.",
+            "You don’t need to think clearly to start. Just start.",
+            "One foggy step still moves you forward."
+        ),
+        "Overwhelmed" to listOf(
+            "Let’s pick *one* tiny step. You’re not alone.",
+            "Everything doesn’t need to be done today.",
+            "One brick at a time still builds a house."
+        ),
+        "Just Need a Nudge" to listOf(
+            "I got you. Let’s break the inertia together.",
+            "Small spark. Big shift.",
+            "One action is all it takes to get rolling."
+        ),
+        "Sorta Ready" to listOf(
+            "Let’s build on that spark. Want to start something?",
+            "Ride the wave—you’re almost already in motion.",
+            "Sorta ready is ready enough!"
+        )
+    )
+
     var selectedMood by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF87CEEB))
+            .background(Color(0xFF87CEEB)) // Sky blue
     ) {
-        // Cloud Animation Layer
+        // Cloud Animation
         BoxWithConstraints(modifier = Modifier.fillMaxSize().zIndex(0f)) {
             val screenWidth = constraints.maxWidth
             val screenWidthDp = with(LocalDensity.current) { screenWidth.toDp() }
@@ -52,28 +75,28 @@ fun DoneishWelcomeScreen(navController: NavController) {
                 )
             )
 
+            val offsetDp = offsetX.dp
+
             Image(
                 painter = painterResource(R.drawable.clouds),
                 contentDescription = null,
-                contentScale = ContentScale.FillHeight,
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .wrapContentWidth()
-                    .offset(x = (-offsetX).dp)
+                    .fillMaxSize()
+                    .offset(x = -offsetDp)
             )
 
             Image(
                 painter = painterResource(R.drawable.clouds),
                 contentDescription = null,
-                contentScale = ContentScale.FillHeight,
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .wrapContentWidth()
-                    .offset(x = (screenWidthDp - offsetX.dp))
+                    .fillMaxSize()
+                    .offset(x = screenWidthDp - offsetDp)
             )
         }
 
-        // Foreground Content
+        // Foreground UI
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -98,15 +121,18 @@ fun DoneishWelcomeScreen(navController: NavController) {
             moods.forEach { mood ->
                 val isSelected = selectedMood == mood
                 Button(
-                    onClick = { selectedMood = mood },
+                    onClick = {
+                        selectedMood = mood
+                        message = ""
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isSelected) Color(0xFFB3E5FC) else Color(0xFFE0F7FA),
                         contentColor = Color.Black
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    border = ButtonDefaults.outlinedButtonBorder
+                        .padding(vertical = 4.dp)
+                        .border(1.dp, Color.Black, shape = MaterialTheme.shapes.small)
                 ) {
                     Text(text = mood)
                 }
@@ -116,18 +142,15 @@ fun DoneishWelcomeScreen(navController: NavController) {
 
             Button(
                 onClick = {
-                    message = when (selectedMood) {
-                        "Foggy Brain" -> "Let’s try just 2 minutes. That’s enough."
-                        "Overwhelmed" -> "Let’s pick *one* tiny step. You’re not alone."
-                        "Just Need a Nudge" -> "I got you. Let’s break the inertia together."
-                        "Sorta Ready" -> "Let’s build on that spark. Want to start something?"
-                        else -> "Pick a mood above so I can meet you there 💛"
-                    }
+                    message = selectedMood?.let { mood ->
+                        moodMessages[mood]?.random() ?: ""
+                    } ?: ""
                 },
                 enabled = selectedMood != null,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726))
             ) {
-                Text("Give Me Something Gentle")
+                Text("Give Me Something Gentle", color = Color.White)
             }
 
             if (message.isNotEmpty()) {
@@ -144,7 +167,8 @@ fun DoneishWelcomeScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(32.dp))
                 Button(
                     onClick = { navController.navigate("login") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00796B))
                 ) {
                     Text("Continue to Login", color = Color.White)
                 }
