@@ -1,111 +1,291 @@
 package com.example.done_ishapp
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
-import com.example.done_ishapp.ui.theme.DoneishAppTheme
+import com.example.done_ishapp.ui.theme.*
+import kotlinx.coroutines.delay
+
+// Level data
+data class Level(val name: String, val minPoints: Int)
+
+val levels = listOf(
+    Level("Rookie", 0),
+    Level("Rising Star", 100),
+    Level("Trailblazer", 300),
+    Level("Champion", 600),
+    Level("Legend", 1000)
+)
 
 @Composable
 fun MomentumTrackerScreen(navController: NavController) {
     var coinCount by remember { mutableStateOf(250) }
-    var showWin by remember { mutableStateOf(false) }
+    var showWinDialog by remember { mutableStateOf(false) }
+    var showConfetti by remember { mutableStateOf(false) }
+    var winText by remember { mutableStateOf(TextFieldValue("")) }
+    var wins by remember { mutableStateOf(listOf<String>()) }
+    var showWinsDialog by remember { mutableStateOf(false) }
 
-    Column(
+    // LEVEL LOGIC
+    val currentLevelIndex = levels.indexOfLast { coinCount >= it.minPoints }.coerceAtLeast(0)
+    val currentLevel = levels[currentLevelIndex]
+    val nextLevel = levels.getOrNull(currentLevelIndex + 1)
+    val levelStart = currentLevel.minPoints
+    val levelEnd = nextLevel?.minPoints ?: (coinCount + 100) // Extend if last level
+    val progress = (coinCount - levelStart).toFloat() / (levelEnd - levelStart).toFloat()
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(SucculentGreen)
+            .padding(24.dp)
     ) {
-        if (showWin) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(
-                text = "You Did\nSomething!",
-                fontSize = 32.sp,
-                color = Color(0xFFB83B1D),
-                lineHeight = 36.sp
+                text = "Momentum Tracker",
+                fontSize = 28.sp,
+                color = SucculentBrown,
+                fontWeight = FontWeight.Bold
             )
 
-            // Placeholder for confetti or donut chart animation
-            Text("+10 Coins Earned!", fontSize = 22.sp, color = Color(0xFFB83B1D))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Circular progress donut
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(175.dp)) {
+                CircularProgressBar(
+                    progress = progress.coerceIn(0f, 1f),
+                    color = SucculentButton,
+                    trackColor = SucculentSurface,
+                    strokeWidth = 14f
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Level",
+                        color = SucculentBrown,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = currentLevel.name,
+                        color = SucculentBrown,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${coinCount} pts",
+                        color = SucculentOnBackground,
+                        fontSize = 15.sp
+                    )
+                }
+            }
 
-            Text("Another win for today", fontSize = 16.sp)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Divider(thickness = 1.dp, color = Color.LightGray)
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("Your Coins:\n${coinCount}", fontSize = 20.sp, color = Color(0xFFB83B1D))
-            Column(horizontalAlignment = Alignment.End) {
-                Text("Level: Momentum", fontSize = 14.sp, color = Color(0xFFB83B1D))
-                Text("Rookie", fontSize = 18.sp, fontWeight = MaterialTheme.typography.titleMedium.fontWeight)
-                LinearProgressIndicator(
-                    progress = 0.3f,
-                    modifier = Modifier
-                        .width(140.dp)
-                        .height(8.dp),
-                    color = Color(0xFF00796B)
+            if (nextLevel != null) {
+                Text(
+                    text = "Next: ${nextLevel.name} (${levelEnd - coinCount} pts left)",
+                    color = SucculentOnBackground,
+                    fontSize = 14.sp
+                )
+            } else {
+                Text(
+                    text = "You’ve reached the top level!",
+                    color = SucculentOnBackground,
+                    fontSize = 14.sp
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Enter win
+            OutlinedTextField(
+                value = winText,
+                onValueChange = { winText = it },
+                label = { Text("What did you just win at?") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = SucculentBrown,
+                    unfocusedBorderColor = SucculentBrown,
+                    cursorColor = SucculentBrown,
+                    focusedLabelColor = SucculentBrown,
+                    unfocusedLabelColor = SucculentBrown,
+                    focusedTextColor = SucculentBrown,
+                    unfocusedTextColor = SucculentBrown
+                )
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = {
+                    if (winText.text.isNotBlank()) {
+                        coinCount += 10
+                        wins = wins + winText.text
+                        winText = TextFieldValue("")
+                        showWinDialog = true
+                        showConfetti = true
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SucculentButton)
+            ) {
+                Text("Log My Win", color = SucculentBrown, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = { showWinsDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .border(1.dp, SucculentBrown, shape = RoundedCornerShape(16.dp)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+            ) {
+                Text("View My Wins", color = SucculentBrown)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "Every little win counts. Future You is grateful!",
+                color = SucculentBrown,
+                fontSize = 15.sp
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                coinCount += 10
-                showWin = true
-                // Optional: Trigger animation
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF6C00))
+        // Confetti/firework animation on coin gain
+        AnimatedVisibility(
+            visible = showConfetti,
+            enter = fadeIn() + scaleIn(initialScale = 2f),
+            exit = fadeOut() + scaleOut(targetScale = 0.1f),
+            modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            Text("Log Another Win", color = Color.White)
+            FireworkConfetti()
         }
 
-        Button(
-            onClick = { /* Navigate to Win History */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .border(1.dp, Color(0xFF00796B), shape = RoundedCornerShape(16.dp)),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-        ) {
-            Text("View My Wins", color = Color(0xFF00796B))
+        // Win dialog
+        if (showWinDialog) {
+            AlertDialog(
+                onDismissRequest = { showWinDialog = false; showConfetti = false },
+                confirmButton = {
+                    TextButton(onClick = { showWinDialog = false; showConfetti = false }) {
+                        Text("Nice!", color = SucculentBrown)
+                    }
+                },
+                title = { Text("🎉 +10 Coins!", color = SucculentBrown) },
+                text = { Text("Win logged. Keep it up!", color = SucculentOnBackground) }
+            )
         }
 
-        Button(
-            onClick = { /* Navigate to Spend Coins page */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .border(1.dp, Color(0xFF00796B), shape = RoundedCornerShape(16.dp)),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-        ) {
-            Text("Spend Coins", color = Color(0xFF00796B))
+        // Wins dialog
+        if (showWinsDialog) {
+            AlertDialog(
+                onDismissRequest = { showWinsDialog = false },
+                confirmButton = {
+                    TextButton(onClick = { showWinsDialog = false }) {
+                        Text("Close", color = SucculentBrown)
+                    }
+                },
+                title = { Text("My Wins", color = SucculentBrown) },
+                text = {
+                    if (wins.isEmpty()) Text("No wins logged yet.", color = SucculentOnBackground)
+                    else Column {
+                        wins.forEach { Text("• $it", color = SucculentOnBackground, fontSize = 15.sp) }
+                    }
+                }
+            )
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Future You is ever so grate ful!", fontSize = 14.sp, color = Color(0xFFB83B1D))
+@Composable
+fun CircularProgressBar(
+    progress: Float,
+    color: Color,
+    trackColor: Color,
+    strokeWidth: Float
+) {
+    Canvas(modifier = Modifier.size(170.dp)) {
+        drawArc(
+            color = trackColor,
+            startAngle = 0f,
+            sweepAngle = 360f,
+            useCenter = false,
+            style = Stroke(width = strokeWidth)
+        )
+        drawArc(
+            color = color,
+            startAngle = -90f,
+            sweepAngle = 360 * progress,
+            useCenter = false,
+            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+        )
+    }
+}
+
+@Composable
+fun FireworkConfetti() {
+    // Simple "burst" circles as placeholder for firework/confetti effect
+    val colors = listOf(
+        Color(0xFFFFA726), Color(0xFF66BB6A), Color(0xFF26A69A),
+        Color(0xFFFFD54F), Color(0xFFEF5350)
+    )
+    val anim = rememberInfiniteTransition(label = "firework")
+    val scale by anim.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ), label = "scale"
+    )
+    Row(Modifier.padding(top = 40.dp), horizontalArrangement = Arrangement.Center) {
+        colors.forEach { c ->
+            Box(
+                Modifier
+                    .size((22 * scale).dp)
+                    .padding(horizontal = 3.dp)
+                    .clip(CircleShape)
+                    .background(c.copy(alpha = 0.5f))
+            )
+        }
     }
 }
 

@@ -4,32 +4,42 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
-import com.example.done_ishapp.ui.theme.DoneishAppTheme
+import com.example.done_ishapp.ui.theme.*
 
 @Composable
 fun StubbornModeScreen(navController: NavController) {
-    var isFocusLocked by remember { mutableStateOf(true) }
+    var isFocusLocked by remember { mutableStateOf(false) }
+    val appList = listOf("Instagram", "TikTok", "YouTube", "Facebook", "Gmail")
+    var restrictedApps by remember { mutableStateOf(setOf<String>()) }
+    var showUnlockedDialog by remember { mutableStateOf(false) }
 
     val toggleColor by animateColorAsState(
-        targetValue = if (isFocusLocked) Color(0xFF4DD0E1) else Color(0xFFB0BEC5),
+        targetValue = if (isFocusLocked) SucculentButton else SucculentBrown.copy(alpha = 0.3f),
         label = "ToggleColor"
     )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0288D1))
+            .background(SucculentGreen)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -39,71 +49,184 @@ fun StubbornModeScreen(navController: NavController) {
         Text(
             "STUBBORN\nMODE",
             fontSize = 32.sp,
-            color = Color.White,
-            lineHeight = 36.sp
+            color = SucculentBrown,
+            lineHeight = 36.sp,
+            fontWeight = FontWeight.Bold
         )
 
         Spacer(Modifier.height(24.dp))
 
         Text(
-            "Turn your resistance into accountability. This mode temporarily restricts access to selected distracting apps until you finish a micro-task.",
+            "Turn your resistance into accountability. This mode temporarily restricts access to selected distracting apps until you complete a Decision Breaker.",
             fontSize = 16.sp,
-            color = Color.White,
+            color = SucculentOnBackground,
             lineHeight = 22.sp
         )
 
         Spacer(Modifier.height(36.dp))
 
+        // Focus Lock Toggle: can only be toggled ON by user, NOT OFF (must use fingerprint)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Focus Lock", fontSize = 18.sp, color = Color.White)
+            Text("Focus Lock", fontSize = 18.sp, color = SucculentBrown)
             Switch(
                 checked = isFocusLocked,
-                onCheckedChange = { isFocusLocked = it },
+                onCheckedChange = { isChecked ->
+                    if (!isFocusLocked && isChecked) {
+                        isFocusLocked = true
+                    }
+                    // Do nothing if trying to turn off while locked
+                },
+                enabled = !isFocusLocked, // Can't toggle OFF
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
+                    checkedThumbColor = SucculentBrown,
                     checkedTrackColor = toggleColor
                 )
             )
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(20.dp))
 
-        Text("Biometric Verification", fontSize = 18.sp, color = Color.White)
+        if (!isFocusLocked) {
+            // App selection UI when Focus Lock is OFF
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(SucculentSurface, RoundedCornerShape(12.dp))
+                    .padding(14.dp)
+            ) {
+                Text(
+                    "Select apps to restrict:",
+                    color = SucculentBrown,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.height(6.dp))
+                appList.forEach { app ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                restrictedApps = if (restrictedApps.contains(app))
+                                    restrictedApps - app else restrictedApps + app
+                            }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Checkbox(
+                            checked = restrictedApps.contains(app),
+                            onCheckedChange = {
+                                restrictedApps = if (it) restrictedApps + app else restrictedApps - app
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = SucculentBrown,
+                                uncheckedColor = SucculentButton
+                            )
+                        )
+                        Text(app, color = SucculentBrown, fontSize = 15.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(22.dp))
+        } else {
+            // Only show biometric (Decision Breaker) label when Focus Lock is ON
+            Text(
+                "Decision Breaker Required",
+                fontSize = 18.sp,
+                color = SucculentBrown,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(10.dp))
+        }
 
+        // Biometric Verification (fingerprint icon and spaced label)
+        Text("Biometric Verification", fontSize = 18.sp, color = SucculentBrown)
         Spacer(Modifier.height(12.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
-                .background(Color(0xFF01579B), shape = RoundedCornerShape(12.dp))
-                .clickable {
-                    // Navigate to biometric setup or show prompt
+                .background(
+                    if (isFocusLocked) SucculentButton else SucculentSurface,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .clickable(
+                    enabled = isFocusLocked
+                ) {
+                    if (isFocusLocked) {
+                        isFocusLocked = false
+                        showUnlockedDialog = true
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text("Enable Fingerprint", color = Color.White, fontSize = 16.sp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Fingerprint,
+                    contentDescription = "Fingerprint",
+                    modifier = Modifier
+                        .size(60.dp)
+                        .alpha(if (isFocusLocked) 1f else 0.4f),
+                    tint = SucculentBrown
+                )
+                Spacer(modifier = Modifier.height(18.dp)) // Space between icon and text
+                Text(
+                    if (isFocusLocked) "Tap to unlock" else "Fingerprint ready",
+                    color = SucculentBrown,
+                    fontSize = 12.sp
+                )
+            }
         }
 
-        Spacer(Modifier.height(36.dp))
+        if (isFocusLocked) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Complete a Decision Breaker to disable Focus Lock and access your restricted apps.",
+                color = SucculentBrown,
+                fontSize = 14.sp
+            )
+        }
+
+        Spacer(Modifier.height(32.dp))
 
         Button(
             onClick = {
-                // Handle navigation or logic trigger
-                navController.popBackStack() // example
+                navController.popBackStack()
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF80DEEA))
+            colors = ButtonDefaults.buttonColors(containerColor = SucculentBrown)
         ) {
-            Text("AUTO-ACTIVATE MODE", color = Color.White, fontSize = 16.sp)
+            Text("Back", color = Color.White, fontSize = 16.sp)
         }
+    }
+
+    // Unlock confirmation dialog
+    if (showUnlockedDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnlockedDialog = false },
+            confirmButton = {
+                TextButton(onClick = { showUnlockedDialog = false }) {
+                    Text("OK", color = SucculentBrown)
+                }
+            },
+            title = { Text("Focus Lock Disabled", color = SucculentBrown) },
+            text = {
+                Text(
+                    "You’ve completed a Decision Breaker! Focus Lock is now off and your restricted apps are available.",
+                    color = SucculentOnBackground
+                )
+            }
+        )
     }
 }
 

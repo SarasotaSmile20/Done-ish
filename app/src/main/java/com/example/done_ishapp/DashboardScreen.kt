@@ -1,5 +1,6 @@
 package com.example.done_ishapp
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -15,40 +16,80 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.done_ishapp.ui.theme.DoneishAppTheme
 import androidx.navigation.compose.rememberNavController
 
+// Import succulent theme colors from Color.kt (do NOT declare them here)
+import com.example.done_ishapp.ui.theme.SucculentGreen
+import com.example.done_ishapp.ui.theme.SucculentBrown
+import com.example.done_ishapp.ui.theme.SucculentButton
+
 @Composable
 fun DashboardScreen(navController: NavController) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(SucculentGreen)
+            .padding(horizontal = 24.dp, vertical = 28.dp)
     ) {
-        Text(
-            text = "Main Dashboard",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFB83B1D)
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Main Dashboard",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = SucculentBrown
+            )
 
-        DashboardButton("Decision Breaker") {
-            navController.navigate("decision")
+            Text(
+                text = "Choose what you want to work on today.",
+                fontSize = 16.sp,
+                color = SucculentBrown.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+
+            DashboardButton("Decision Breaker") {
+                navController.navigate("decision")
+            }
+            DashboardButton("Momentum Tracker") {
+                navController.navigate("momentum")
+            }
+            DashboardButton("Smart Interrupt Notifications") {
+                navController.navigate("interrupts")
+            }
+            DashboardButton("Stubborn Mode") {
+                navController.navigate("stubborn")
+            }
+            DashboardButton("Micro-Commit Timer") {
+                navController.navigate("microcommit")
+            }
         }
 
-        DashboardButton("Momentum Tracker") {
-            navController.navigate("momentum")
-        }
-
-        DashboardButton("Smart Interrupt Notifications") {
-            navController.navigate("interrupts")
-        }
-
-        DashboardButton("Stubborn Mode") {
-            navController.navigate("stubborn")
-        }
-
-        DashboardButton("Micro-Commit Timer") {
-            navController.navigate("microcommit")
+        // Log Out button at the bottom
+        Button(
+            onClick = {
+                navController.navigate("welcome") {
+                    // Clear back stack to prevent return to dashboard on back press
+                    popUpTo("dashboard") { inclusive = true }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 10.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = SucculentBrown)
+        ) {
+            Text(
+                text = "Log Out",
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                fontSize = 18.sp
+            )
         }
     }
 }
@@ -61,9 +102,14 @@ fun DashboardButton(label: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .height(60.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFCC80))
+        colors = ButtonDefaults.buttonColors(containerColor = SucculentButton)
     ) {
-        Text(text = label, color = Color.DarkGray, fontSize = 16.sp)
+        Text(
+            text = label,
+            color = SucculentBrown,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
