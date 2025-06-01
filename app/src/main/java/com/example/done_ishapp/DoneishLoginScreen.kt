@@ -26,25 +26,14 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.done_ishapp.ui.theme.DoneishAppTheme
 import com.example.done_ishapp.R
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-
 
 @Composable
 fun DoneishLoginScreen(navController: NavController) {
     val cursiveFont = FontFamily(Font(R.font.cedarvillecursive_regular))
-
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         // Background image
         Image(
             painter = painterResource(id = R.drawable.succulents),
@@ -90,7 +79,6 @@ fun DoneishLoginScreen(navController: NavController) {
                 onValueChange = { email = it },
                 label = { Text("Email", color = Color.DarkGray) },
                 textStyle = TextStyle(color = Color.DarkGray),
-                colors = outlinedTextFieldDefaults(),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -103,7 +91,6 @@ fun DoneishLoginScreen(navController: NavController) {
                 textStyle = TextStyle(color = Color.DarkGray),
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                colors = outlinedTextFieldDefaults(),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -120,19 +107,6 @@ fun DoneishLoginScreen(navController: NavController) {
             }
         }
     }
-}
-
-@Composable
-fun outlinedTextFieldDefaults(): TextFieldColors {
-    return TextFieldDefaults.outlinedTextFieldColors(
-        textColor = Color.DarkGray,
-        cursorColor = Color.DarkGray,
-        focusedBorderColor = Color(0xFF888888),
-        unfocusedBorderColor = Color(0xFFCCCCCC),
-        focusedLabelColor = Color.DarkGray,
-        unfocusedLabelColor = Color.DarkGray,
-        containerColor = Color.Transparent
-    )
 }
 
 @Preview(showBackground = true)
