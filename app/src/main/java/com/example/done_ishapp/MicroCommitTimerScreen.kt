@@ -18,25 +18,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.done_ishapp.ui.theme.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
- * A single row of “micro‐commit” options.
+ * Each row represents a set of tasks that take a given number of minutes.
  */
 data class MicroCommitRow(
     val minutes: Int,
@@ -45,7 +38,7 @@ data class MicroCommitRow(
 )
 
 /**
- * Holds the row label, the chosen task label, and the minute‐count.
+ * Stores which row and which task the user selected, along with the minute count.
  */
 data class SelectedTask(
     val rowLabel: String,
@@ -56,7 +49,7 @@ data class SelectedTask(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MicroCommitTimerScreen(navController: NavController) {
-    // 1) Define all rows (2‐min, 5‐min, 15‐min)
+    // 1) Define all micro-commit rows (2, 5, and 15 minutes)
     val microCommitOptions = listOf(
         MicroCommitRow(
             minutes = 2,
@@ -93,69 +86,55 @@ fun MicroCommitTimerScreen(navController: NavController) {
         )
     )
 
-    // 2) UI state: which task is currently selected (or null if none)
+    // 2) UI state: currently-selected task (or null if none)
     var selectedTask by remember { mutableStateOf<SelectedTask?>(null) }
 
-    // 3) The absolute “end time” in milliseconds. 0L means “no timer running.”
+    // 3) The absolute end-time in System.currentTimeMillis(); 0L means “no timer”
     var endTimeMillis by rememberSaveable { mutableStateOf(0L) }
 
-    // 4) How many seconds remain (recomputed every tick)
+    // 4) How many whole seconds remain (recomputed each second)
     var remainingSeconds by remember { mutableStateOf(0) }
 
-    // 5) Whether to show the celebratory message once it hits zero
+    // 5) Whether to show the 🎉 celebration once it hits zero
     var showCelebrate by remember { mutableStateOf(false) }
 
-    // ---------------------------------------
-    //  Lifecycle‐aware ticker (emits once/sec)
-    // ---------------------------------------
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val tickFlow = remember { MutableStateFlow(Unit) }
-
-    LaunchedEffect(Unit) {
-        // Only emit ticks while we are in RESUMED state
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            launch {
-                while (true) {
-                    tickFlow.emit(Unit)
+    // --------------------------------------------------------
+    // Launch a coroutine whenever endTimeMillis changes to >0L
+    // --------------------------------------------------------
+    LaunchedEffect(endTimeMillis) {
+        if (endTimeMillis > 0L) {
+            // Keep looping until current time >= endTimeMillis
+            while (true) {
+                val now = System.currentTimeMillis()
+                val diff = endTimeMillis - now
+                if (diff > 0L) {
+                    // Convert milliseconds to whole seconds
+                    remainingSeconds = (diff / 1000L).toInt()
                     delay(1000L)
+                } else {
+                    // Timer reached zero
+                    remainingSeconds = 0
+                    endTimeMillis = 0L
+                    if (selectedTask != null) {
+                        showCelebrate = true
+                        // Tell StubbornModeScreen that it can now unlock
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set<Boolean>("canUnlock", true)
+                    }
+                    break
                 }
             }
         }
     }
 
-    // On each tick, recalc “remainingSeconds” based on endTimeMillis
-    LaunchedEffect(tickFlow, endTimeMillis) {
-        tickFlow
-            .flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.RESUMED)
-            .collect {
-                if (endTimeMillis > 0L) {
-                    val now = System.currentTimeMillis()
-                    val diff = endTimeMillis - now
-                    if (diff > 0L) {
-                        remainingSeconds = (diff / 1000L).toInt()
-                    } else {
-                        // Timer hit zero:
-                        remainingSeconds = 0
-                        endTimeMillis = 0L
-                        if (selectedTask != null) {
-                            showCelebrate = true
-                            // Tell StubbornModeScreen that “canUnlock” is now true:
-                            navController.previousBackStackEntry
-                                ?.savedStateHandle
-                                ?.set<Boolean>("canUnlock", true)
-                        }
-                    }
-                }
-            }
-    }
-
-    // A simple pulsing alpha animation for the “🎉 Done! 🎉” text
+    // A simple pulsing alpha for the “Done!” text
     val infiniteTransition = rememberInfiniteTransition()
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 800, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         )
     )
@@ -173,7 +152,7 @@ fun MicroCommitTimerScreen(navController: NavController) {
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        // Always navigate back to Dashboard:
+                        // Always go back to Dashboard
                         navController.navigate("dashboard") {
                             popUpTo("dashboard") { inclusive = false }
                         }
@@ -185,9 +164,7 @@ fun MicroCommitTimerScreen(navController: NavController) {
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SucculentSurface
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SucculentSurface)
             )
         }
     ) { innerPadding ->
@@ -198,9 +175,9 @@ fun MicroCommitTimerScreen(navController: NavController) {
                 .background(SucculentGreen)
                 .padding(24.dp)
         ) {
-            // -------------------------------------------------
-            // Scrollable area: all rows + timer + celebration
-            // -------------------------------------------------
+            // -------------------------------------------
+            // Scrollable area: list of rows + timer + “Done!”
+            // -------------------------------------------
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -208,6 +185,7 @@ fun MicroCommitTimerScreen(navController: NavController) {
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // For each micro-commit row (2, 5, 15)
                 microCommitOptions.forEach { row ->
                     MicroCommitRowSelector(
                         row = row,
@@ -216,7 +194,7 @@ fun MicroCommitTimerScreen(navController: NavController) {
                             val isSame = (selectedTask?.rowLabel == row.label
                                     && selectedTask?.taskLabel == taskLabel)
                             if (isSame) {
-                                //  a) Deselect: stop timer, clear canUnlock
+                                // If they tapped the same button again → deselect
                                 selectedTask = null
                                 endTimeMillis = 0L
                                 showCelebrate = false
@@ -224,7 +202,7 @@ fun MicroCommitTimerScreen(navController: NavController) {
                                     ?.savedStateHandle
                                     ?.set<Boolean>("canUnlock", false)
                             } else {
-                                // b) New selection: start fresh timer
+                                // New selection → start a fresh timer
                                 selectedTask = SelectedTask(
                                     rowLabel = row.label,
                                     taskLabel = taskLabel,
@@ -242,11 +220,13 @@ fun MicroCommitTimerScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
+                // If a task is chosen, show the live timer
                 if (selectedTask != null) {
                     Spacer(modifier = Modifier.height(14.dp))
                     TimerDisplay(remainingSeconds, remainingSeconds > 0)
                 }
 
+                // Once showCelebrate == true, show 🎉 Done! 🎉
                 if (showCelebrate) {
                     Spacer(modifier = Modifier.height(14.dp))
                     Text(
@@ -258,7 +238,7 @@ fun MicroCommitTimerScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = {
-                            // Reset everything after celebrating
+                            // Reset after celebrating
                             selectedTask = null
                             remainingSeconds = 0
                             showCelebrate = false
@@ -273,9 +253,9 @@ fun MicroCommitTimerScreen(navController: NavController) {
                 }
             }
 
-            // -----------------------------------
-            // Bottom row: “Dashboard” + “Back to Stubborn Mode”
-            // -----------------------------------
+            // -----------------------------------------
+            // Bottom row (fixed): Dashboard + “Back to Stubborn”
+            // -----------------------------------------
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -298,7 +278,8 @@ fun MicroCommitTimerScreen(navController: NavController) {
 
                 Button(
                     onClick = {
-                        navController.popBackStack() // Back to Stubborn Mode
+                        // Pop back to Stubborn Mode
+                        navController.popBackStack()
                     },
                     modifier = Modifier
                         .widthIn(min = 120.dp)
@@ -372,6 +353,7 @@ fun TimerDisplay(timeLeftSeconds: Int, timerRunning: Boolean) {
     val sec = timeLeftSeconds % 60
     val timeString = "%02d:%02d".format(min, sec)
     val textColor = if (timerRunning) SucculentBrown else Color.Gray
+
     Surface(
         color = SucculentSurface,
         shape = RoundedCornerShape(24.dp),
