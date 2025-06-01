@@ -57,7 +57,7 @@ fun StubbornModeScreen(navController: NavController) {
         Spacer(Modifier.height(24.dp))
 
         Text(
-            "Turn your resistance into accountability. This mode temporarily restricts access to selected distracting apps until you complete a Decision Breaker.",
+            "Turn your resistance into accountability. This mode temporarily restricts access to selected distracting apps until you complete a Micro Commitment.",
             fontSize = 16.sp,
             color = SucculentOnBackground,
             lineHeight = 22.sp
@@ -132,9 +132,9 @@ fun StubbornModeScreen(navController: NavController) {
             }
             Spacer(Modifier.height(22.dp))
         } else {
-            // Only show biometric (Decision Breaker) label when Focus Lock is ON
+            // Only show biometric (Micro Commitment) label when Focus Lock is ON
             Text(
-                "Decision Breaker Required",
+                "Micro Commitment Required",
                 fontSize = 18.sp,
                 color = SucculentBrown,
                 fontWeight = FontWeight.Bold
@@ -188,7 +188,7 @@ fun StubbornModeScreen(navController: NavController) {
         if (isFocusLocked) {
             Spacer(Modifier.height(12.dp))
             Text(
-                "Complete a Decision Breaker to disable Focus Lock and access your restricted apps.",
+                "Complete a Micro Commitment to disable Focus Lock and access your restricted apps.",
                 color = SucculentBrown,
                 fontSize = 14.sp
             )
@@ -222,7 +222,7 @@ fun StubbornModeScreen(navController: NavController) {
             title = { Text("Focus Lock Disabled", color = SucculentBrown) },
             text = {
                 Text(
-                    "You’ve completed a Decision Breaker! Focus Lock is now off and your restricted apps are available.",
+                    "You’ve completed a Micro Commitment! Focus Lock is now off and your restricted apps are available.",
                     color = SucculentOnBackground
                 )
             }
