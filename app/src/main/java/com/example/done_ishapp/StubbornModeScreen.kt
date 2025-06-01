@@ -22,13 +22,29 @@ import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.done_ishapp.ui.theme.*
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun StubbornModeScreen(navController: NavController) {
-    var isFocusLocked by remember { mutableStateOf(false) }
-    val appList = listOf("Instagram", "TikTok", "YouTube", "Facebook", "Gmail")
-    var restrictedApps by remember { mutableStateOf(setOf<String>()) }
+    // Read “canUnlock” from the savedStateHandle of the previous backStackEntry (if any).
+    // But once set(false), we only set true from MicroCommitTimerScreen via previousBackStackEntry.
+    val canUnlock = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.get<Boolean>("canUnlock") ?: false
+
+    // Lift “isFocusLocked” into a singleton so it survives all navigations:
+    var isFocusLocked by rememberSaveable { mutableStateOf(AppState.isFocusLocked) }
+
+    // Whenever we toggle, sync to AppState
+    LaunchedEffect(isFocusLocked) {
+        AppState.isFocusLocked = isFocusLocked
+    }
+
+    // List of apps user can restrict
+    var restrictedApps by rememberSaveable { mutableStateOf(setOf<String>()) }
     var showUnlockedDialog by remember { mutableStateOf(false) }
+
+    val appList = listOf("Instagram", "TikTok", "YouTube", "Facebook", "Gmail")
 
     val toggleColor by animateColorAsState(
         targetValue = if (isFocusLocked) SucculentButton else SucculentBrown.copy(alpha = 0.3f),
@@ -57,15 +73,14 @@ fun StubbornModeScreen(navController: NavController) {
         Spacer(Modifier.height(24.dp))
 
         Text(
-            "Turn your resistance into accountability. This mode temporarily restricts access to selected distracting apps until you complete a Micro Commitment.",
+            "Turn your resistance into accountability. Once Focus Lock is enabled, your chosen apps remain locked until you complete a Micro Commitment and return here to unlock.",
             fontSize = 16.sp,
             color = SucculentOnBackground,
-            lineHeight = 22.sp
+            lineHeight = 22.sp,
+            modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        Spacer(Modifier.height(36.dp))
-
-        // Focus Lock Toggle: can only be toggled ON by user, NOT OFF (must use fingerprint)
+        // Focus Lock Toggle
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -77,10 +92,13 @@ fun StubbornModeScreen(navController: NavController) {
                 onCheckedChange = { isChecked ->
                     if (!isFocusLocked && isChecked) {
                         isFocusLocked = true
+                        // Clear any previous “canUnlock” when turning lock ON:
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("canUnlock", false)
                     }
                     // Do nothing if trying to turn off while locked
                 },
-                enabled = !isFocusLocked, // Can't toggle OFF
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = SucculentBrown,
                     checkedTrackColor = toggleColor
@@ -130,75 +148,82 @@ fun StubbornModeScreen(navController: NavController) {
                     }
                 }
             }
-            Spacer(Modifier.height(22.dp))
         } else {
-            // Only show biometric (Micro Commitment) label when Focus Lock is ON
+            // Once Focus Lock is ON:
+            Spacer(Modifier.height(12.dp))
             Text(
-                "Micro Commitment Required",
-                fontSize = 18.sp,
+                "Your selected apps are now locked. To unlock, complete a Micro Commitment next.",
+                fontSize = 14.sp,
                 color = SucculentBrown,
-                fontWeight = FontWeight.Bold
+                modifier = Modifier.padding(bottom = 24.dp)
             )
-            Spacer(Modifier.height(10.dp))
-        }
 
-        // Biometric Verification (fingerprint icon and spaced label)
-        Text("Biometric Verification", fontSize = 18.sp, color = SucculentBrown)
-        Spacer(Modifier.height(12.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-                .background(
-                    if (isFocusLocked) SucculentButton else SucculentSurface,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .clickable(
-                    enabled = isFocusLocked
-                ) {
-                    if (isFocusLocked) {
-                        isFocusLocked = false
-                        showUnlockedDialog = true
-                    }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            // “Go to Micro-Commit” button (always visible if isFocusLocked == true)
+            Button(
+                onClick = { navController.navigate("microcommit") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SucculentButton)
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Fingerprint,
-                    contentDescription = "Fingerprint",
-                    modifier = Modifier
-                        .size(60.dp)
-                        .alpha(if (isFocusLocked) 1f else 0.4f),
-                    tint = SucculentBrown
-                )
-                Spacer(modifier = Modifier.height(18.dp)) // Space between icon and text
-                Text(
-                    if (isFocusLocked) "Tap to unlock" else "Fingerprint ready",
-                    color = SucculentBrown,
-                    fontSize = 12.sp
-                )
+                Text("Go to Micro-Commit", color = SucculentBrown)
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Biometric box only becomes tappable if canUnlock == true
+            Text("Biometric Verification", fontSize = 18.sp, color = SucculentBrown)
+            Spacer(Modifier.height(12.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .background(
+                        if (canUnlock) SucculentButton else SucculentSurface,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clickable(
+                        enabled = canUnlock
+                    ) {
+                        isFocusLocked = false
+                        AppState.isFocusLocked = false  // also update global
+                        showUnlockedDialog = true
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Fingerprint,
+                        contentDescription = "Fingerprint",
+                        modifier = Modifier
+                            .size(60.dp)
+                            .alpha(if (canUnlock) 1f else 0.4f),
+                        tint = SucculentBrown
+                    )
+                    Spacer(modifier = Modifier.height(18.dp))
+                    Text(
+                        if (canUnlock) "Tap to unlock" else "Locked",
+                        color = SucculentBrown,
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
 
-        if (isFocusLocked) {
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "Complete a Micro Commitment to disable Focus Lock and access your restricted apps.",
-                color = SucculentBrown,
-                fontSize = 14.sp
-            )
-        }
+        Spacer(Modifier.weight(1f)) // push the bottom button to the bottom
 
-        Spacer(Modifier.height(32.dp))
-
+        // “Back to Dashboard” button (when NOT locked) or simply “Back” (could be repurposed):
         Button(
             onClick = {
-                navController.popBackStack()
+                // If locked, we still navigate to Dashboard but preserve lock state in AppState
+                navController.navigate("dashboard") {
+                    popUpTo("dashboard") { inclusive = false }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -206,8 +231,10 @@ fun StubbornModeScreen(navController: NavController) {
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = SucculentBrown)
         ) {
-            Text("Back", color = Color.White, fontSize = 16.sp)
+            Text("Back to Dashboard", color = Color.White, fontSize = 16.sp)
         }
+
+        Spacer(Modifier.height(12.dp))
     }
 
     // Unlock confirmation dialog
