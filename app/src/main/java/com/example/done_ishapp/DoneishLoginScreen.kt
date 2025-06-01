@@ -32,6 +32,7 @@ fun DoneishLoginScreen(navController: NavController) {
     val cursiveFont = FontFamily(Font(R.font.cedarvillecursive_regular))
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var showDisclaimerDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Background image
@@ -98,13 +99,53 @@ fun DoneishLoginScreen(navController: NavController) {
 
             Button(
                 onClick = {
-                    navController.navigate("dashboard")
+                    showDisclaimerDialog = true
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726))
             ) {
                 Text("Log in", color = Color.White)
             }
+        }
+
+        // Disclaimer Dialog
+        if (showDisclaimerDialog) {
+            AlertDialog(
+                onDismissRequest = { /* Prevent dismissal by tapping outside */ },
+                title = {
+                    Text("Disclaimer", fontWeight = FontWeight.Bold)
+                },
+                text = {
+                    Column {
+                        Text("• Done-ish is intended as a productivity and habit-formation tool, not a substitute for professional mental health or medical advice.")
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("• Results may vary; individual experiences depend on personal motivation and context.")
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("• Always consult a qualified professional for serious time-management or mental health concerns.")
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDisclaimerDialog = false
+                            navController.navigate("dashboard") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        }
+                    ) {
+                        Text("Proceed")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showDisclaimerDialog = false
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
